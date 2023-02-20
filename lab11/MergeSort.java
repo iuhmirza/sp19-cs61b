@@ -1,5 +1,7 @@
 import edu.princeton.cs.algs4.Queue;
 
+import java.util.NoSuchElementException;
+
 public class MergeSort {
     /**
      * Removes and returns the smallest item that is in q1 or q2.
@@ -11,8 +13,7 @@ public class MergeSort {
      * @param   q2  A Queue in sorted order from least to greatest.
      * @return      The smallest item that is in q1 or q2.
      */
-    private static <Item extends Comparable> Item getMin(
-            Queue<Item> q1, Queue<Item> q2) {
+    private static <Item extends Comparable> Item getMin(Queue<Item> q1, Queue<Item> q2) {
         if (q1.isEmpty()) {
             return q2.dequeue();
         } else if (q2.isEmpty()) {
@@ -40,10 +41,14 @@ public class MergeSort {
      * @return         A Queue of queues, each containing an item from items.
      *
      */
-    private static <Item extends Comparable> Queue<Queue<Item>>
-            makeSingleItemQueues(Queue<Item> items) {
-        // Your code here!
-        return null;
+    private static <Item extends Comparable> Queue<Queue<Item>> makeSingleItemQueues(Queue<Item> items) {
+        Queue<Queue<Item>> q = new Queue<>();
+        for (Item p : items) {
+            Queue<Item> qu = new Queue<>();
+            qu.enqueue(p);
+            q.enqueue(qu);
+        }
+        return q;
     }
 
     /**
@@ -59,10 +64,12 @@ public class MergeSort {
      *              greatest.
      *
      */
-    private static <Item extends Comparable> Queue<Item> mergeSortedQueues(
-            Queue<Item> q1, Queue<Item> q2) {
-        // Your code here!
-        return null;
+    private static <Item extends Comparable> Queue<Item> mergeSortedQueues(Queue<Item> q1, Queue<Item> q2) {
+        Queue<Item> q = new Queue<>();
+        while (!q1.isEmpty() || !q2.isEmpty()) {
+            q.enqueue(getMin(q1, q2));
+        }
+        return q;
     }
 
     /**
@@ -77,7 +84,49 @@ public class MergeSort {
      */
     public static <Item extends Comparable> Queue<Item> mergeSort(
             Queue<Item> items) {
-        // Your code here!
-        return items;
+        Queue<Queue<Item>> q = makeSingleItemQueues(items);
+        Queue<Queue<Item>> q2 = new Queue<>();
+        int outerSize = q.size();
+        while (q.peek().size() != outerSize) {
+            int innerSize = q.size() % 2 == 0 ? q.size() / 2 : (q.size() - 1) / 2 + 1;
+            while (q2.size() < innerSize) {
+                Queue<Item> Qi1 = q.dequeue();
+                try {
+                    Queue<Item> Qi2 = q.dequeue();
+                    q2.enqueue(mergeSortedQueues(Qi1, Qi2));
+                } catch (NoSuchElementException e) {
+                    q2.enqueue(Qi1);
+                }
+            }
+            q = q2;
+            q2 = new Queue<>();
+        }
+        return q.peek();
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
