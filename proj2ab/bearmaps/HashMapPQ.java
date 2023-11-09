@@ -2,12 +2,12 @@ package bearmaps;
 
 import java.util.HashMap;
 
-public class MyPQ<T> implements ExtrinsicMinPQ<T>{
+public class HashMapPQ<T> implements ExtrinsicMinPQ<T>{
 
     private HashMap<T, Double> queue;
     private T smallest;
     private int size;
-    public MyPQ() {
+    public HashMapPQ() {
         queue = new HashMap<>();
         size = 0;
     }

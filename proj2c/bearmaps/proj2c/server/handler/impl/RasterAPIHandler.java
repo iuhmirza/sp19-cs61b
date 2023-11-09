@@ -17,8 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static bearmaps.proj2c.utils.Constants.SEMANTIC_STREET_GRAPH;
-import static bearmaps.proj2c.utils.Constants.ROUTE_LIST;
+import static bearmaps.proj2c.utils.Constants.*;
 
 /**
  * Handles requests from the web browser for map images. These images
@@ -84,12 +83,100 @@ public class RasterAPIHandler extends APIRouteHandler<Map<String, Double>, Map<S
      */
     @Override
     public Map<String, Object> processRequest(Map<String, Double> requestParams, Response response) {
-        //System.out.println("yo, wanna know the parameters given by the web browser? They are:");
-        //System.out.println(requestParams);
+        System.out.println("yo, wanna know the parameters given by the web browser? They are:");
+        System.out.println(requestParams);
+
+        double queryX1 = requestParams.get("ullon");
+        double queryY1 = requestParams.get("ullat");
+        double queryX2 = requestParams.get("lrlon");
+        double queryY2 = requestParams.get("lrlat");
+        double width = requestParams.get("w");
+
+        double queryLonDPP = (queryX2 - queryX1) / width;
+        int depth  = calcDepth(queryLonDPP);
+
+        Object[] UpperLeft = findImage(queryX1, queryY1, depth);
+        Object[] LowerRight = findImage(queryX2, queryY2, depth);
+
+        int[] UpperLeftCoords = (int[]) UpperLeft[0];
+        int[] LowerRightCoords = (int[]) LowerRight[0];
+
+        int render_grid_size_x = 1 + LowerRightCoords[0] - UpperLeftCoords[0];
+        int render_grid_size_y = 1 - UpperLeftCoords[1] + LowerRightCoords[1];
+
+        String[][] render_grid = new String[render_grid_size_y][render_grid_size_x];
+
+        for (int j = 0; j < render_grid_size_y; j += 1) {
+            for (int i = 0; i < render_grid_size_x; i += 1) {
+                render_grid[j][i] = String.format("d%d_x%d_y%d.png", depth, i + UpperLeftCoords[0], j + UpperLeftCoords[1]);
+            }
+        }
+
+        double[] upperLeftLonLat = (double[]) UpperLeft[1];
+        double[] lowerRightLonLat = (double[]) LowerRight[1];
+
         Map<String, Object> results = new HashMap<>();
-        System.out.println("Since you haven't implemented RasterAPIHandler.processRequest, nothing is displayed in "
-                + "your browser.");
+
+        results.put("render_grid", render_grid);
+        results.put("raster_ul_lon", upperLeftLonLat[0]);
+        results.put("raster_ul_lat", upperLeftLonLat[1]);
+        results.put("raster_lr_lon", lowerRightLonLat[2]);
+        results.put("raster_lr_lat", lowerRightLonLat[3]);
+        results.put("depth", depth);
+        results.put("query_success", (boolean) UpperLeft[2] && (boolean) LowerRight[2]);
         return results;
+    }
+
+    private int calcDepth(double requiredDPP) {
+        double diffImageX = ROOT_LRLON-ROOT_ULLON;
+        double imageLonDPP = diffImageX / 256;
+
+        int depth = 0;
+        while (depth <= 7 && (imageLonDPP > requiredDPP)) {
+            depth += 1;
+            diffImageX = 0.5 * diffImageX;
+            imageLonDPP = diffImageX / 256;
+        }
+        if (depth > 7) depth = 7;
+        return depth;
+    }
+
+    private Object[] findImage(double x, double y, int depth) {
+        int boxes = (int) Math.pow(2, depth);
+        double diffX = (ROOT_LRLON-ROOT_ULLON) / boxes;
+        double diffY = (ROOT_LRLAT-ROOT_ULLAT) / boxes;
+        int i = 0;
+        int j = 0;
+        boolean pass = true;
+
+        while (ROOT_ULLON + i * diffX < x){
+            i += 1;
+        }
+
+        while (ROOT_ULLAT + j * diffY > y){
+            j += 1;
+        }
+
+        if (i > boxes) {
+            i = boxes;
+        }
+        if (j > boxes) {
+            j = boxes;
+        }
+        if (i == 0) {
+            i = 1;
+        }
+        if (j == 0) {
+            j = 1;
+        }
+
+        double ullon = ROOT_ULLON + (i - 1) * diffX;
+        double ullat = ROOT_ULLAT + (j - 1) * diffY;
+        double lrlon = ROOT_ULLON + i * diffX;
+        double lrlat = ROOT_ULLAT + j * diffY;
+
+        return new Object[]{new int[]{i-1, j-1}, new double[]{ullon, ullat, lrlon, lrlat}, pass};
+
     }
 
     @Override
